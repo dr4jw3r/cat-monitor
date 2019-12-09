@@ -9,6 +9,10 @@ class Camera(object):
         self.create(args)
         self.timethread = TimeUpdateThread(self.picam)
     
+    def _stoptimer(self):
+        self.timethread.stop()
+        self.timethread.join()
+    
     def create(self, args):
         self.picam = PiCamera()
         self.picam.rotation = args.rotation
@@ -18,12 +22,29 @@ class Camera(object):
     
     def start_preview(self):
         self.picam.start_preview()
-        self.timethread.start()
+        
+        if not self.timethread.isAlive():
+            self.timethread.start()
         
     def stop_preview(self):
         self.picam.stop_preview()
-        self.timethread.stop()
-
+        self._stoptimer()
+        
+    def start_recording(self, filename):
+        self.picam.start_recording(filename)
+        
+        if not self.timethread.isAlive():
+            self.timethread.start()
+        
+    def stop_recording(self):
+        self.picam.stop_recording()
+        self._stoptimer()
+        
+    def split_recording(self, filename):
+        self.picam.split_recording(filename + ".h264")
+        
+    def wait_recording(self, time):
+        self.picam.wait_recording(time)
 
 class TimeUpdateThread(Thread):
     def __init__(self, camera):
@@ -35,7 +56,7 @@ class TimeUpdateThread(Thread):
         while self.keeprunning:
             time = datetime.now().strftime("%d %b %Y, %H:%M:%S")
             self.camera.annotate_text = time
-            sleep(0.5)
+            sleep(1)
             
     def stop(self):
         self.keeprunning = False
