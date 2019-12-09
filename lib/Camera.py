@@ -21,7 +21,7 @@ class Camera(object):
         self.picam.annotate_text_size = 50
     
     def start_preview(self):
-        self.picam.start_preview()
+        self.picam.start_preview(fullscreen=False, window=(100, 100, 800, 600))
         
         if not self.timethread.isAlive():
             self.timethread.start()
