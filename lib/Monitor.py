@@ -8,7 +8,7 @@ class Monitor(object):
     def __init__(self, args):
         self.args = args
         self.logger = Logger(args, type(self).__name__)
-        self.cliplength = args.length# * 60
+        self.cliplength = args.length * 60
         self.previousfile = ""
         self.filename = self.createfilename()
         self.converter = None
