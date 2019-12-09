@@ -10,4 +10,5 @@ def createparser():
     parser.add_argument('-l', '--length', action='store', default=10, type=int, help='video part length (min)')
     parser.add_argument('-n', '--number', action='store', default=10, type=int, help='number of video clips to store')
     parser.add_argument('-p', '--preview', action='store_const', const=True, default=False, help='show preview')
+    parser.add_argument('-v', '--verbose', action='store_const', const=True, default=False, help='verbose output')
     return parser.parse_args()

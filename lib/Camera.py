@@ -9,7 +9,7 @@ class Camera(object):
         self.create(args)
         self.timethread = TimeUpdateThread(self.picam)
     
-    def _stoptimer(self):
+    def stoptimer(self):
         self.timethread.stop()
         self.timethread.join()
     
@@ -28,7 +28,7 @@ class Camera(object):
         
     def stop_preview(self):
         self.picam.stop_preview()
-        self._stoptimer()
+        self.stoptimer()
         
     def start_recording(self, filename):
         self.picam.start_recording(filename)
@@ -38,7 +38,7 @@ class Camera(object):
         
     def stop_recording(self):
         self.picam.stop_recording()
-        self._stoptimer()
+        self.stoptimer()
         
     def split_recording(self, filename):
         self.picam.split_recording(filename + ".h264")
