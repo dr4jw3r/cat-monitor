@@ -35,6 +35,5 @@ class FileMonitor(Thread):
             
             sleep(1)
     
-    def stop(self):
-        self.logger.verbose("stopping")
+    def stop(self):        
         self.keeprunning = False

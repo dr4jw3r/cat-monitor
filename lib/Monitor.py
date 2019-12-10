@@ -3,6 +3,7 @@ from lib.Converter import Converter
 from lib.FileMonitor import FileMonitor
 from lib.Camera import Camera
 from lib.Logger import Logger
+from lib.DriveMonitor import DriveMonitor
 
 class Monitor(object):
     def __init__(self, args):
@@ -13,6 +14,7 @@ class Monitor(object):
         self.filename = self.createfilename()
         self.converter = None
         self.filemonitor = None
+        self.drivemonitor = None
         self.camera = Camera(args)
         
     def createfilename(self):
@@ -23,12 +25,16 @@ class Monitor(object):
         self.filemonitor.start()
         self.converter = Converter(self.args)
         self.converter.start()
+        self.drivemonitor = DriveMonitor(self.args)
+        self.drivemonitor.start()
 
     def stopthreads(self):
         self.filemonitor.stop()
         self.filemonitor.join()
         self.converter.stop()
         self.converter.join()
+        self.drivemonitor.stop()
+        self.drivemonitor.join()
         
     def start(self):
         try:
