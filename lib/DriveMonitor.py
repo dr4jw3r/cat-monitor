@@ -1,14 +1,14 @@
 import pickle
 import os
 import io
+import logging
 from datetime import datetime
 from time import sleep
+from threading import Thread
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-from threading import Thread 
-from lib.Logger import Logger
 
 CHECKINTERVAL = 120 # seconds
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -21,48 +21,50 @@ class DriveMonitor(Thread):
     def __init__(self, args):
         Thread.__init__(self)
         self.args = args
-        self.logger = Logger(args, type(self).__name__)
+        self.logger = logging.getLogger("catmonitor.DriveMonitor")
         self.keeprunning = True
         self.creds = None
         self.counter = 0
         self._maketoken()
         self.service = self._createservice()
         self.drivedirid = self._getdirectoryid()
-        self.uploadqueue = []        
-        
+        self.uploadqueue = []
+
         if not os.path.exists(REQUESTSDIR):
+            self.logger.debug("creating requests directory")
             os.mkdir(REQUESTSDIR)
-        
+
     def _getdirectoryid(self):
         results = self.service.files().list(q="name = 'catmonitor' and mimeType='application/vnd.google-apps.folder'", pageSize=1, fields="files(id, name)").execute()
         items = results.get('files', [])
-        
-        if len(items) > 0:            
+
+        if len(items) > 0:
             return items[0]['id']
         else:
-            self.logger.err("catmonitor directory not found in drive")
+            self.logger.error("catmonitor directory not found in drive")
             return None
-        
+
     def _parse(self):
         files = [file for file in os.listdir(REQUESTSDIR) if not file.endswith("_parsed")]
         while len(files) is not 0:
             file = files.pop(0)
+            self.logger.info("found request file {0}".format(file))
             filepath = os.path.join(REQUESTSDIR, file)
-            
+
             with open(filepath, 'rb') as f:
                 vidindex = list(map(int, f.read().split(',')))
-                
+
             outpath = os.path.abspath(self.args.output)
             vids = [f for f in os.listdir(outpath) if os.path.isfile(os.path.join(outpath, f))]
             vids = [f for f in vids if f.endswith(".mp4")]
             vids.sort(key=lambda x: -os.path.getmtime(outpath + "/" + x))
-                                        
+
             for i in vidindex:
                 if 0 <= i - 1 < len(vids):
                     if vids[i - 1] not in self.uploadqueue:
                         self.uploadqueue.append(vids[i - 1])
 
-            self.logger.verbose("{0} parsed, renaming".format(file))
+            self.logger.debug("{0} parsed, renaming".format(file))
             os.rename(filepath, filepath + "_parsed")
             
         
@@ -74,7 +76,7 @@ class DriveMonitor(Thread):
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            self.logger.verbose("Download %d%%." % int(status.progress() * 100))                    
+            self.logger.info("Download %d%%." % int(status.progress() * 100))                    
             
         with open(os.path.join(REQUESTSDIR, filename),'wb') as out:
             out.write(fh.getvalue())
@@ -85,12 +87,12 @@ class DriveMonitor(Thread):
     def _upload(self):
         if len(self.uploadqueue) is not 0:
             file = self.uploadqueue.pop(0)
-            self.logger.verbose("uploading {0}".format(file))
+            self.logger.info("uploading {0}".format(file))
             meta = {'name': file, 'parents': [self.drivedirid]}
             filepath = os.path.join(self.args.output, file)                
             media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True, chunksize=-1)                   
             f = self.service.files().create(body=meta, media_body=media, fields='id').execute()
-            self.logger.verbose("uploaded with id {0}".format(f.get('id')))
+            self.logger.info("uploaded with id {0}".format(f.get('id')))
         
     def _getfiles(self):
         # Call the Drive v3 API
@@ -98,11 +100,11 @@ class DriveMonitor(Thread):
         items = results.get('files', [])
 
         if not items:
-            self.logger.verbose("no video request file found")
+            self.logger.debug("no video request file found")
         else:
-            self.logger.verbose("video request file found")
+            self.logger.info("video request file found")
             for item in items:
-                self.logger.verbose(u'\t{0} ({1})'.format(item['name'], item['id']))
+                self.logger.debug(u'\t{0} ({1})'.format(item['name'], item['id']))
                 self._download(item)               
         
     def _createservice(self):
@@ -119,7 +121,7 @@ class DriveMonitor(Thread):
                 self.creds.refresh(Request())
             else:
                 if not os.path.exists(CREDSPATH):
-                    self.logger.err("credentials.json not found")
+                    self.logger.error("credentials.json not found")
                     self.stop()
                     return
                     

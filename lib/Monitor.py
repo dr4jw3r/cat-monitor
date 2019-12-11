@@ -1,14 +1,14 @@
+import logging
 from datetime import datetime
 from lib.Converter import Converter
 from lib.FileMonitor import FileMonitor
 from lib.Camera import Camera
-from lib.Logger import Logger
 from lib.DriveMonitor import DriveMonitor
 
 class Monitor(object):
     def __init__(self, args):
         self.args = args
-        self.logger = Logger(args, type(self).__name__)
+        self.logger = logging.getLogger('catmonitor.Monitor')
         self.cliplength = args.length * 60
         self.previousfile = ""
         self.filename = self.createfilename()
@@ -23,10 +23,13 @@ class Monitor(object):
     def startthreads(self):
         self.filemonitor = FileMonitor(self.args)        
         self.filemonitor.start()
+        self.logger.debug("file monitor started")
         self.converter = Converter(self.args)
         self.converter.start()
+        self.logger.debug("converter started")
         self.drivemonitor = DriveMonitor(self.args)
         self.drivemonitor.start()
+        self.logger.debug("drive monitor started")
 
     def stopthreads(self):
         self.filemonitor.stop()
@@ -37,13 +40,13 @@ class Monitor(object):
         self.drivemonitor.join()
         
     def start(self):
-        try:
-            self.startthreads()
+        try:            
+            self.startthreads()            
             
             if self.args.preview:
                 self.camera.start_preview()
             
-            self.logger.verbose("staring recording: " + self.filename)
+            self.logger.info("starting recording: " + self.filename)
             self.camera.start_recording(self.filename + ".h264")    
             self.camera.wait_recording(self.cliplength)
         
@@ -51,7 +54,7 @@ class Monitor(object):
                 self.previousfile = self.filename
                 self.filename = self.createfilename()
                 
-                self.logger.verbose("splitting recording: " + self.filename)
+                self.logger.info("splitting recording: " + self.filename)
                 self.camera.split_recording(self.filename)
                                 
                 self.converter.enqueue(self.previousfile)

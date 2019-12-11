@@ -1,27 +1,26 @@
 import os
+import logging
 import subprocess
 
 from time import sleep
 from threading import Thread
-
-from lib.Logger import Logger
 
 class Converter(Thread):
     def __init__(self, args):
         Thread.__init__(self)
         self.keeprunning = True
         self.queue = []
-        self.logger = Logger(args, type(self).__name__)
+        self.logger = logging.getLogger("catmonitor.Converter")
         
     def _convert(self, filename):
         command = "MP4Box -add {0}.h264 {1}.mp4".format(filename, filename)    
         try:
             output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)            
             os.remove(filename + ".h264")
-            self.logger.verbose("converted " + filename)
+            self.logger.debug("converted " + filename)
             return 0
         except subprocess.CalledProcessError as e:
-            print('FAIL:\ncmd:{}\noutput:{}'.format(e.cmd, e.output))
+            self.logger.error('FAIL:\ncmd:{}\noutput:{}'.format(e.cmd, e.output))
             return 1
         
     def run(self):
@@ -36,5 +35,5 @@ class Converter(Thread):
         self.keeprunning = False        
 
     def enqueue(self, filename):
-        self.logger.verbose("enqueueing " + filename)
+        self.logger.debug("adding {0} to conversion queue".format(filename))
         self.queue.append(filename)        

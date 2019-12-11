@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from time import sleep
 from threading import Thread
@@ -5,9 +6,10 @@ from picamera import PiCamera, Color
 
 class Camera(object):
     def __init__(self, args):
+        self.logger = logging.getLogger("catmonitor.Camera")
         self.picam = None
         self.create(args)
-        self.timethread = TimeUpdateThread(self.picam)
+        self.timethread = TimeUpdateThread(self.picam)                
     
     def stoptimer(self):
         self.timethread.stop()
@@ -18,7 +20,8 @@ class Camera(object):
         self.picam.rotation = args.rotation
         self.picam.framerate = args.fps
         self.picam.resolution = (args.width, args.height)            
-        self.picam.annotate_text_size = 50
+        self.picam.annotate_text_size = 50        
+        self.logger.debug("camera created")
     
     def start_preview(self):
         self.picam.start_preview(fullscreen=False, window=(100, 100, 800, 600))
