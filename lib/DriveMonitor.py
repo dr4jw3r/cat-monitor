@@ -10,7 +10,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
-CHECKINTERVAL = 120 # seconds
 SCOPES = ['https://www.googleapis.com/auth/drive']
 ROOTDIR = os.path.dirname(os.path.abspath(__file__))
 CREDSPATH = os.path.abspath(os.path.join(ROOTDIR, "../credentials.json"))
@@ -134,7 +133,7 @@ class DriveMonitor(Thread):
         
     def run(self):
         while self.keeprunning:
-            if self.counter > CHECKINTERVAL:                
+            if self.counter > self.args.polling_interval:
                 self._getfiles()
                 self.counter = 0
             else:                
