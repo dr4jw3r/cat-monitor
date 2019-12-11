@@ -23,7 +23,7 @@ class FileMonitor(Thread):
         self.keeprunning = True
         
     def run(self):
-        while self.keeprunning:
+        while self.keeprunning:            
             files = [f for f in os.listdir(self.outputdir) if os.path.isfile(os.path.join(self.outputdir, f))]
             files = [f for f in files if f.endswith(".mp4")]
             
