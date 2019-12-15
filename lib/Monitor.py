@@ -3,7 +3,9 @@ from datetime import datetime
 from lib.Converter import Converter
 from lib.FileMonitor import FileMonitor
 from lib.Camera import Camera
+from lib.DriveService import DriveService
 from lib.DriveMonitor import DriveMonitor
+from lib.PIRThread import PIRThread
 
 class Monitor(object):
     def __init__(self, args):
@@ -12,9 +14,11 @@ class Monitor(object):
         self.cliplength = args.length * 60
         self.previousfile = ""
         self.filename = self.createfilename()
+        self.drive_service = DriveService(args)
         self.converter = None
         self.filemonitor = None
         self.drivemonitor = None
+        self.pir = None
         self.camera = Camera(args)
         
     def createfilename(self):
@@ -27,9 +31,12 @@ class Monitor(object):
         self.converter = Converter(self.args)
         self.converter.start()
         self.logger.debug("converter started")
-        self.drivemonitor = DriveMonitor(self.args)
+        self.drivemonitor = DriveMonitor(self.drive_service, self.args)
         self.drivemonitor.start()
         self.logger.debug("drive monitor started")
+        self.pir = PIRThread(self.camera.capture_still, self.args, self.drive_service)
+        self.pir.start()
+        self.logger.debug("pir thread started")
 
     def stopthreads(self):
         self.filemonitor.stop()
@@ -38,6 +45,8 @@ class Monitor(object):
         self.converter.join()
         self.drivemonitor.stop()
         self.drivemonitor.join()
+        self.pir.stop()
+        self.pir.join()
         
     def start(self):
         try:            

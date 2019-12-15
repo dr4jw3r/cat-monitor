@@ -1,6 +1,7 @@
 output
 requests
 logs
+images
 *.mp4
 *.pyc
 credentials.json

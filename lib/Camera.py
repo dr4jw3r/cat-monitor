@@ -1,4 +1,5 @@
 import logging
+import os.path
 from datetime import datetime
 from time import sleep
 from threading import Thread
@@ -9,7 +10,16 @@ class Camera(object):
         self.logger = logging.getLogger("catmonitor.Camera")
         self.picam = None
         self.create(args)
-        self.timethread = TimeUpdateThread(self.picam)                
+        self.timethread = TimeUpdateThread(self.picam)
+        self.image_dir = self._get_image_dir()
+    
+    def _get_image_dir(self):        
+        image_dir = os.path.abspath("./images")
+        if not os.path.exists(image_dir):
+            self.logger.debug("creating images directory")
+            os.mkdir(image_dir)
+            
+        return image_dir
     
     def stoptimer(self):
         self.timethread.stop()
@@ -48,6 +58,11 @@ class Camera(object):
         
     def wait_recording(self, time):
         self.picam.wait_recording(time)
+        
+    def capture_still(self):        
+        name = self.image_dir + "/" + datetime.now().strftime("%H-%M-%S.jpg")        
+        self.picam.capture(name, use_video_port=True)
+        return name
 
 class TimeUpdateThread(Thread):
     def __init__(self, camera):
