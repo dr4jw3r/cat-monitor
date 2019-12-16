@@ -116,12 +116,15 @@ class DriveService(object):
     def upload(self, queue, parent_id, mimetype):        
         if len(queue) is not 0:
             for item in queue:
-                self.logger.info("uploading {0}".format(item))
-                meta = {'name': ntpath.basename(item), 'parents': [parent_id]}
-                media = MediaFileUpload(item, mimetype=mimetype, resumable=True, chunksize=-1)                   
-                f = self.service.files().create(body=meta, media_body=media, fields='id').execute()
-                self.logger.info("uploaded with id {0}".format(f.get('id')))
-            
+                try:
+                    self.logger.info("uploading {0}".format(item))
+                    meta = {'name': ntpath.basename(item), 'parents': [parent_id]}
+                    media = MediaFileUpload(item, mimetype=mimetype, resumable=True, chunksize=-1)                   
+                    f = self.service.files().create(body=meta, media_body=media, fields='id').execute()
+                    self.logger.info("uploaded with id {0}".format(f.get('id')))
+                except:
+                    self.logger.error("failed to upload {0}: {1}".format(item, sys.exc_info()[0]))
+
     def get_requests_dir(self):
         return REQUESTSDIR
     
