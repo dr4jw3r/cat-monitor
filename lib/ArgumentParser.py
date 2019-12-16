@@ -15,4 +15,5 @@ def createparser():
     parser.add_argument('-i', '--polling-interval', action='store', default=300, type=int, help='google drive polling interval')
     parser.add_argument('-p', '--preview', action='store_const', const=True, default=False, help='show preview')
     parser.add_argument('-v', '--verbose', action='store_const', const=True, default=False, help='verbose output')
+    parser.add_argument('--debug', action='store_const', const=True, default=False, help='debug mode (disable google drive operations)')
     return parser.parse_args()

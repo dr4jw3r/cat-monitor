@@ -101,6 +101,10 @@ class DriveService(object):
             return None
     
     def download_video_request(self):
+        if self.args.debug:
+            self.logger.debug("debug mode on, upload called")
+            return
+        
         # Call the Drive v3 API
         results = self.service.files().list(q="name = 'videorequest'", pageSize=10, fields="nextPageToken, files(id, name)").execute()
         items = results.get('files', [])
@@ -113,7 +117,11 @@ class DriveService(object):
                 self.logger.debug(u'\t{0} ({1})'.format(item['name'], item['id']))
                 self._download(item)   
         
-    def upload(self, queue, parent_id, mimetype):        
+    def upload(self, queue, parent_id, mimetype):  
+        if self.args.debug:
+            self.logger.debug("debug mode on, upload called")
+            return
+              
         if len(queue) is not 0:
             for item in queue:
                 try:
