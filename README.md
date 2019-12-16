@@ -21,3 +21,13 @@ optional arguments:\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-p, --preview         show preview\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-v, --verbose         verbose output\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--debug               debug mode (disable google drive operations)
+
+### Google Drive Request Files
+
+#### videorequest
+
+Contents should contain a comma-separated list of indexes of videos to upload.
+Indexes start with 1 (most recent video)
+
+#### listfiles
+Just a blank file
