@@ -53,10 +53,15 @@ class DriveMonitor(Thread):
                             
         
     def run(self):
-        while self.keeprunning:
+        while self.keeprunning:            
             if self.counter > self.args.polling_interval:
-                self.service.download_video_request()
+                # check if there is a list file                
+                self.service.check_video_request()
                 self.counter = 0
+            elif self.counter * 2 == self.args.polling_interval:
+                self.service.check_list_files_request()
+                self.counter += 1
+                pass
             else:                
                 self.counter += 1
                 self._parse()                

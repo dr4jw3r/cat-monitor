@@ -4,7 +4,9 @@ import pickle
 import logging
 import ntpath
 
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from lib.RequestFile import RequestFile
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -63,21 +65,27 @@ class DriveService(object):
     def _create_service(self):
         return build('drive', 'v3', credentials=self.creds)
     
-    def _download(self, item):
-        filename = 'videorequest_' + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-        request = self.service.files().get_media(fileId=item['id'])
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-            self.logger.info("Download %d%%." % int(status.progress() * 100))                    
+    def _delete(self, file_id):
+        try:
+            self.service.files().delete(fileId=file_id).execute()
+            self.logger.debug("{0} deleted".format(file_id))
+            return True
+        except:
+            self.logger.error("failed to delete {0}: {1}".format(file_id, sys.exc_info()[0]))
+            return False
+    
+    def _download(self, file_id):
+        request = self.service.files().get_media(fileId=file_id)
+        
+        with io.BytesIO() as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+                self.logger.info("Download %d%%." % int(status.progress() * 100))                    
+                
             
-        with open(os.path.join(REQUESTSDIR, filename),'wb') as out:
-            out.write(fh.getvalue())
-            
-        fh.close()
-        self.service.files().delete(fileId=item['id']).execute()
+            return fh.getvalue()
     
     def _get_drive_root_directory_id(self):
         results = self.service.files().list(q="name = 'catmonitor' and mimeType='application/vnd.google-apps.folder'", pageSize=1, fields="files(id, name)").execute()
@@ -100,22 +108,72 @@ class DriveService(object):
             self.logger.error("catmonitor images directory not found in drive")
             return None
     
-    def download_video_request(self):
+    def _get_file_id(self, file_name):
+        results = self.service.files().list(q="name = '{0}'".format(file_name), pageSize=1, fields="files(id, name)").execute()
+        items = results.get('files', [])
+        
+        if not items:
+            self.logger.debug("no {0} file found".format(file_name))
+            return None
+        else:
+            self.logger.debug("{0} file found".format(file_name))
+            return items[0]['id']
+    
+    def _handle_file(self, file_type, file_id, contents):
+        if file_type is RequestFile.VideoRequest:
+            file_name = "videorequest_{0}".format(datetime.now().strftime("%Y-%m-%d_%H-%M_%S"))
+            file_path = os.path.join(REQUESTSDIR, file_name)            
+            with open(file_path, 'wb') as outfile:
+                outfile.write(contents)
+                
+            self._delete(file_id)
+            
+        elif file_type is RequestFile.ListFilesRequest:
+            lines = []
+            files = [f for f in os.listdir(self.args.output) if os.path.isfile(os.path.join(self.args.output, f))]
+            files = [f for f in files if f.endswith(".mp4")]      
+
+            if len(files) > 0:
+                files.sort(key=lambda x: os.path.getmtime(self.args.output + "/" + x))
+                
+                for i in range(0, len(files)):
+                    index = str(i + 1)
+                    formatted = files[i].replace('.mp4', '')
+                    start_date = datetime.strptime(formatted, '%Y-%m-%d_%H.%M.%S')
+                    end_date = start_date + timedelta(minutes=self.args.length)
+                    start = start_date.strftime('%Y-%m-%d %H:%M:%S')
+                    end = end_date.strftime('%Y-%m-%d %H:%M:%S')
+                    lines.append('[{index}] [{start_date} -> {end_date}]\n'.format(index=index, start_date=start, end_date=end))
+                    
+                with open('videos.txt', 'wb') as outfile:
+                    outfile.writelines(lines)
+                    
+                uploaded = self.upload([os.path.abspath('videos.txt')], self.drive_root_id, 'text/plain')
+                
+                if uploaded:
+                    os.remove('videos.txt')
+                    self._delete(file_id)
+                    
+    def check_video_request(self):
         if self.args.debug:
-            self.logger.debug("debug mode on, upload called")
+            self.logger.debug("debug mode on, check video request called")
             return
         
-        # Call the Drive v3 API
-        results = self.service.files().list(q="name = 'videorequest'", pageSize=10, fields="nextPageToken, files(id, name)").execute()
-        items = results.get('files', [])
-
-        if not items:
-            self.logger.debug("no video request file found")
-        else:
-            self.logger.info("video request file found")
-            for item in items:
-                self.logger.debug(u'\t{0} ({1})'.format(item['name'], item['id']))
-                self._download(item)   
+        file_id = self._get_file_id("videorequest") 
+        
+        if file_id is not None:
+            contents = self._download(file_id)
+            self._handle_file(RequestFile.VideoRequest, file_id, contents)
+        
+    def check_list_files_request(self):
+        if self.args.debug:
+            self.logger.debug("debug mode on, check list files request called")
+            return
+            
+        file_id = self._get_file_id("listfiles")
+        
+        if file_id is not None:
+            self._handle_file(RequestFile.ListFilesRequest, file_id, None)
         
     def upload(self, queue, parent_id, mimetype):  
         if self.args.debug:
@@ -130,8 +188,10 @@ class DriveService(object):
                     media = MediaFileUpload(item, mimetype=mimetype, resumable=True, chunksize=-1)                   
                     f = self.service.files().create(body=meta, media_body=media, fields='id').execute()
                     self.logger.info("uploaded with id {0}".format(f.get('id')))
+                    return True
                 except:
                     self.logger.error("failed to upload {0}: {1}".format(item, sys.exc_info()[0]))
+                    return False
 
     def get_requests_dir(self):
         return REQUESTSDIR
