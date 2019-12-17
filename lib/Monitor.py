@@ -1,6 +1,7 @@
 import logging
 
 from datetime import datetime
+from time import sleep
 
 from lib.Converter import Converter
 from lib.FileMonitor import FileMonitor
@@ -20,22 +21,15 @@ class Monitor(object):
         self.logger = logging.getLogger('catmonitor.Monitor')
         self.clip_length = args.length * 60 # multiply by 60 to convert to minutes
         self.previous_file = ""
-        self.file_name = self._create_file_name()
         self.drive_service = DriveService(args)
         self.converter = None
         self.file_monitor = None
         self.drive_monitor = None
         self.pir = None
-        self.camera = Camera(args)
 
     '''
     --- private functions ---
     '''
-    def _create_file_name(self):
-        '''
-        creates a file name for the recording
-        '''
-        return self.args.output + "/" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
 
     def _start_threads(self):
         '''
@@ -44,16 +38,26 @@ class Monitor(object):
         self.file_monitor = FileMonitor(self.args)
         self.file_monitor.start()
         self.logger.debug("file monitor started")
+
         self.converter = Converter(self.args)
         self.converter.start()
         self.logger.debug("converter started")
+
         self.drive_monitor = DriveMonitor(self.drive_service, self.args)
         self.drive_monitor.start()
         self.logger.debug("drive monitor started")
+        
+        self.camera = Camera(self.args, self.drive_service, self.converter)
+        
         self.pir = PIRThread(self.camera.capture_still,
                              self.args, self.drive_service)
         self.pir.start()
         self.logger.debug("pir thread started")
+        
+        self.pir.subscribe("camera.image", self.camera.image_handler, self.args.image_interval)
+        
+        # add 1 second for safety
+        self.pir.subscribe("camera.video", self.camera.video_handler, (self.args.length + 1))
 
     def _stop_threads(self):
         '''
@@ -81,23 +85,15 @@ class Monitor(object):
             if self.args.preview:
                 self.camera.start_preview()
 
-            self.logger.info("starting recording: " + self.file_name)
-            self.camera.start_recording(self.file_name + ".h264")
-            self.camera.wait_recording(self.clip_length)
-
+            # start recording to circular buffer
+            self.camera.start_recording()
+            
+            # program loop
             while True:
-                self.previous_file = self.file_name
-                self.file_name = self._create_file_name()
-
-                self.logger.info("splitting recording: " + self.file_name)
-                self.camera.split_recording(self.file_name)
-
-                self.converter.enqueue(self.previous_file)
-                self.camera.wait_recording(self.clip_length)
-
+                sleep(1)
+           
+            # cleanup
             self.camera.stop_recording()
-            # enqueue the last recorded file
-            self.converter.enqueue(self.file_name)
             self._stop_threads()
 
             if self.args.preview:
@@ -107,6 +103,5 @@ class Monitor(object):
 
         except KeyboardInterrupt:
             print("KeyboardInterrupt")
-            self.converter.enqueue(self.file_name)
             self._stop_threads()
-            self.camera.stop_timer()
+            self.camera.stop_recording()

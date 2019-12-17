@@ -26,6 +26,7 @@ class PIRThread(Thread):
         self.capture_still = capture_still
         self.service = service
         self.timeout = 0
+        self.subscribers = []
 
     '''
     --- private functions ---
@@ -36,22 +37,30 @@ class PIRThread(Thread):
         self.pir.when_no_motion = self._motion_stop
     
     def _motion_start(self):
-        queue = []
-        if self.timeout is 0 or timer() - self.timeout > self.args.image_interval:
-            self.timeout = timer()
-            self.logger.debug("motion detected, capturing {0} images".format(self.args.number_images))
-            for i in range(0, self.args.number_images):
-                queue.append(self.capture_still())
-                if i != self.args.number_images - 1:                    
-                    sleep(self.args.image_sleep)
-                                            
-            self.service.upload(queue, self.service.get_images_dir(), "image/jpeg")
-        else:
-            self.logger.debug("motion detected, interval not passed")
-
+        trigger_time = timer()
+        for i in range(0, len(self.subscribers)):            
+            (sub_name, sub_handler, sub_interval, sub_last_called) = self.subscribers[i]
+            if sub_last_called == 0 or trigger_time - sub_last_called > sub_interval:
+                self.subscribers[i] = (sub_name, sub_handler, sub_interval, trigger_time)
+                thread = Thread(target=lambda: sub_handler())
+                thread.start()
+                sleep(0.1)
+            
     def _motion_stop(self):
         self.logger.debug("motion stopped")
         
+    def subscribe(self, name, handler, interval):
+        self.subscribers.append((name, handler, interval, 0))
+        
+    def unsubscribe(self, name):
+        subscriber = [itm for itm in enumerate(self.subscribers) if itm[1][0] == name]
+        
+        if not subscriber:
+            self.logger.debug("subscriber {0} not found".format(name))
+        else:
+            self.subscribers.pop(subscriber[0][0])
+            self.logger.debug("{0} unsubscribed".format(name))
+            
     def stop(self):
         pass
         

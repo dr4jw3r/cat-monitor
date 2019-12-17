@@ -20,7 +20,7 @@ def createparser():
                         default="./", type=str, help='output file path')
 
     parser.add_argument('-l', '--length', action='store',
-                        default=10, type=int, help='video part length (min)')
+                        default=1, type=int, help='video part length (min)')
 
     parser.add_argument('-n', '--number', action='store', default=10,
                         type=int, help='number of video clips to store')

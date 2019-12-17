@@ -147,7 +147,7 @@ class DriveService(object):
                     index = str(i + 1)
                     formatted = files[i].replace('.mp4', '')
                     start_date = datetime.strptime(formatted, '%Y-%m-%d_%H.%M.%S')
-                    end_date = start_date + timedelta(minutes=self.args.length)
+                    end_date = start_date + timedelta(seconds=self.args.length)
                     start = start_date.strftime('%Y-%m-%d %H:%M:%S')
                     end = end_date.strftime('%Y-%m-%d %H:%M:%S')
                     lines.append('[{index}] [{start_date} -> {end_date}]\n'.format(index=index, start_date=start, end_date=end))
