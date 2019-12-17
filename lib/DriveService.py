@@ -169,7 +169,7 @@ class DriveService(object):
             self.logger.debug("debug mode on, check video request called")
             return
         
-        file_id = self._get_file_id("videorequest") 
+        file_id = self._get_file_id("videorequest.txt") 
         
         if file_id is not None:
             contents = self._download(file_id)

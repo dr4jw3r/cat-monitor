@@ -26,7 +26,7 @@ optional arguments:\
 
 ### Google Drive Request Files
 
-#### videorequest
+#### videorequest.txt
 
 Contents should contain a comma-separated list of indexes of videos to upload.
 Indexes start with 1 (most recent video)
