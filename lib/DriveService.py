@@ -197,11 +197,12 @@ class DriveService(object):
                     meta = {'name': ntpath.basename(item), 'parents': [parent_id]}
                     media = MediaFileUpload(item, mimetype=mimetype, resumable=True, chunksize=-1)                   
                     f = self.service.files().create(body=meta, media_body=media, fields='id').execute()
-                    self.logger.info("uploaded with id {0}".format(f.get('id')))
-                    return True
+                    self.logger.info("uploaded with id {0}".format(f.get('id')))                    
                 except:
                     self.logger.error("failed to upload {0}: {1}".format(item, sys.exc_info()[0]))
                     return False
+                    
+            return True
 
     def get_requests_dir(self):
         return REQUESTSDIR
