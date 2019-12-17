@@ -16,7 +16,7 @@ def setup_logging(args):
 
     logger = logging.getLogger('catmonitor')
     logger.setLevel(logging.DEBUG)
-    log_file = os.path.join(logs_path), datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".log")
+    log_file = os.path.join(logs_path, datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".log")
 
     fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
