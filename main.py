@@ -1,18 +1,24 @@
 import logging
 import os.path
+
 from datetime import datetime
 from lib.ArgumentParser import createparser
 from lib.Monitor import Monitor
 
+
 def setup_logging(args):
-    if not os.path.exists(os.path.abspath('./logs')):
-        os.mkdir(os.path.abspath('./logs'))
+    '''
+    this function sets up the logging for the entire application
+    '''
+    logs_path = os.path.abspath('./logs')
+    if not os.path.exists(logs_path):
+        os.mkdir(logs_path)
 
     logger = logging.getLogger('catmonitor')
     logger.setLevel(logging.DEBUG)
-    logfile = os.path.join(os.path.abspath('./logs'), datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".log")
+    log_file = os.path.join(logs_path), datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".log")
 
-    fh = logging.FileHandler(logfile)
+    fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
 
     ch = logging.StreamHandler()
@@ -30,6 +36,7 @@ def setup_logging(args):
     logger.addHandler(ch)
 
     return logger
+
 
 if __name__ == "__main__":
     args = createparser()

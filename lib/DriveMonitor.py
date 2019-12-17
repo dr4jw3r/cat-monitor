@@ -5,11 +5,15 @@ from time import sleep
 from threading import Thread
 
 class DriveMonitor(Thread):
+    '''
+    class responsible for monitoring whether request files are present
+    in google drive
+    '''
     def __init__(self, service, args):
         Thread.__init__(self)        
         self.args = args
         self.logger = logging.getLogger("catmonitor.DriveMonitor")
-        self.keeprunning = True        
+        self.keep_running = True        
         self.counter = 0        
         self.service = service        
         self.requests_dir = self.service.get_requests_dir()
@@ -40,20 +44,8 @@ class DriveMonitor(Thread):
             os.rename(filepath, filepath + "_parsed")
             self.service.upload(queue, self.service.get_root_dir(), "video/mp4")
                     
-        
-    def _upload(self):
-        if len(self.uploadqueue) is not 0:
-            file = self.uploadqueue.pop(0)
-            self.logger.info("uploading {0}".format(file))
-            meta = {'name': file, 'parents': [self.drivedirid]}
-            filepath = os.path.join(self.args.output, file)                
-            media = MediaFileUpload(filepath, mimetype='video/mp4', resumable=True, chunksize=-1)                   
-            f = self.service.get_service().files().create(body=meta, media_body=media, fields='id').execute()
-            self.logger.info("uploaded with id {0}".format(f.get('id')))          
-                            
-        
     def run(self):
-        while self.keeprunning:            
+        while self.keep_running:            
             if self.counter > self.args.polling_interval:
                 # check if there is a list file                
                 self.service.check_video_request()
@@ -69,4 +61,4 @@ class DriveMonitor(Thread):
             sleep(1)            
             
     def stop(self):
-        self.keeprunning = False
+        self.keep_running = False

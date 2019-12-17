@@ -20,6 +20,9 @@ TOKENPATH = os.path.abspath(os.path.join(ROOTDIR, "../token.pickle"))
 CREDSPATH = os.path.abspath(os.path.join(ROOTDIR, "../credentials.json"))
 
 class DriveService(object):
+    '''
+    google drive service
+    '''
     def __init__(self, args):
         object.__init__(self)
         self.args = args
@@ -35,6 +38,9 @@ class DriveService(object):
         
         self._create_requests_dir()
         
+    '''
+    --- private functions ---
+    '''
     def _make_token(self):
         if os.path.exists(TOKENPATH):
             with open(TOKENPATH, 'rb') as token:
@@ -153,7 +159,10 @@ class DriveService(object):
                 if uploaded:
                     os.remove('videos.txt')
                     self._delete(file_id)
-                    
+
+    '''
+    --- public functions ---
+    '''          
     def check_video_request(self):
         if self.args.debug:
             self.logger.debug("debug mode on, check video request called")

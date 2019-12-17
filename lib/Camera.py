@@ -1,18 +1,33 @@
 import logging
 import os.path
+
 from datetime import datetime
 from time import sleep
 from threading import Thread
 from picamera import PiCamera, Color
 
 class Camera(object):
+    '''
+    class for handling the pi camera functionality
+    '''
     def __init__(self, args):
         self.logger = logging.getLogger("catmonitor.Camera")
         self.picam = None
-        self.create(args)
+        self._create(args)
         self.timethread = TimeUpdateThread(self.picam)
         self.image_dir = self._get_image_dir()
     
+    '''
+    --- private functions ---
+    '''
+    def _create(self, args):
+        self.picam = PiCamera()
+        self.picam.rotation = args.rotation
+        self.picam.framerate = args.fps
+        self.picam.resolution = (args.width, args.height)            
+        self.picam.annotate_text_size = 25      
+        self.logger.debug("camera created")
+
     def _get_image_dir(self):        
         image_dir = os.path.abspath("./images")
         if not os.path.exists(image_dir):
@@ -21,17 +36,12 @@ class Camera(object):
             
         return image_dir
     
-    def stoptimer(self):
+    '''
+    --- public functions ---
+    '''
+    def stop_timer(self):
         self.timethread.stop()
         self.timethread.join()
-    
-    def create(self, args):
-        self.picam = PiCamera()
-        self.picam.rotation = args.rotation
-        self.picam.framerate = args.fps
-        self.picam.resolution = (args.width, args.height)            
-        self.picam.annotate_text_size = 50        
-        self.logger.debug("camera created")
     
     def start_preview(self):
         self.picam.start_preview(fullscreen=False, window=(100, 100, 800, 600))
@@ -41,7 +51,7 @@ class Camera(object):
         
     def stop_preview(self):
         self.picam.stop_preview()
-        self.stoptimer()
+        self.stop_timer()
         
     def start_recording(self, filename):
         self.picam.start_recording(filename)
@@ -51,7 +61,7 @@ class Camera(object):
         
     def stop_recording(self):
         self.picam.stop_recording()
-        self.stoptimer()
+        self.stop_timer()
         
     def split_recording(self, filename):
         self.picam.split_recording(filename + ".h264")
@@ -65,6 +75,10 @@ class Camera(object):
         return name
 
 class TimeUpdateThread(Thread):
+    '''
+    class responsible for updating the current time in the video
+    (annotation text)
+    '''
     def __init__(self, camera):
         Thread.__init__(self)
         self.camera = camera
