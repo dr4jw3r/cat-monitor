@@ -44,6 +44,8 @@ class PIRThread(Thread):
                 self.subscribers[i] = (sub_name, sub_handler, sub_interval, trigger_time)
                 thread = Thread(target=lambda: sub_handler())
                 thread.start()
+                # sleep to make sure the thread is started before notifying another
+                # sometimes caused issues with scope
                 sleep(0.1)
             
     def _motion_stop(self):

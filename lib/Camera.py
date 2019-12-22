@@ -81,7 +81,7 @@ class Camera(object):
         self.picam.wait_recording(time)
         
     def capture_still(self):        
-        name = self.image_dir + "/" + datetime.now().strftime("%H-%M-%S.jpg")        
+        name = self.image_dir + "/" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S.jpg")        
         self.picam.capture(name, use_video_port=True)
         return name
         

@@ -45,12 +45,14 @@ class DriveMonitor(Thread):
             self.service.upload(queue, self.service.get_root_dir(), "video/mp4")
                     
     def run(self):
+        # round interval to make sure the elif condition is triggered for uneven intervals
+        rounded_interval = self.args.polling_interval if self.args.polling_interval % 2 == 0 else self.args.polling_interval + 1        
         while self.keep_running:            
             if self.counter > self.args.polling_interval:
-                # check if there is a list file                
+                # check if there is a list file   
                 self.service.check_video_request()
-                self.counter = 0
-            elif self.counter * 2 == self.args.polling_interval:
+                self.counter = 0            
+            elif self.counter * 2 == rounded_interval:
                 self.service.check_list_files_request()
                 self.counter += 1
                 pass

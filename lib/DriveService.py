@@ -82,17 +82,20 @@ class DriveService(object):
             return False
     
     def _download(self, file_id):
-        request = self.service.files().get_media(fileId=file_id)
-        
-        with io.BytesIO() as fh:
-            downloader = MediaIoBaseDownload(fh, request)
-            done = False
-            while done is False:
-                status, done = downloader.next_chunk()
-                self.logger.info("Download %d%%." % int(status.progress() * 100))                    
-                
+        try:
+            request = self.service.files().get_media(fileId=file_id)
             
-            return fh.getvalue()
+            with io.BytesIO() as fh:
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while done is False:
+                    status, done = downloader.next_chunk()
+                    self.logger.info("Download %d%%." % int(status.progress() * 100))                    
+                    
+                
+                return fh.getvalue()
+        except:
+            self.logger.error("failed to download {0}: {1}".format(file_id, sys.exc_info()[0]))
     
     def _get_drive_root_directory_id(self):
         results = self.service.files().list(q="name = 'catmonitor' and mimeType='application/vnd.google-apps.folder'", pageSize=1, fields="files(id, name)").execute()
@@ -116,15 +119,20 @@ class DriveService(object):
             return None
     
     def _get_file_id(self, file_name):
-        results = self.service.files().list(q="name = '{0}'".format(file_name), pageSize=1, fields="files(id, name)").execute()
-        items = results.get('files', [])
-        
-        if not items:
-            self.logger.debug("no {0} file found".format(file_name))
+        try:            
+            results = self.service.files().list(q="name = '{0}'".format(file_name), pageSize=1, fields="files(id, name)").execute()
+            items = results.get('files', [])
+            
+            if not items:
+                self.logger.debug("no {0} file found".format(file_name))
+                return None
+            else:
+                self.logger.debug("{0} file found".format(file_name))
+                return items[0]['id']
+        except:
+            self.logger.error("failed to get file id {0}: {1}".format(file_name, sys.exc_info()[0]))
             return None
-        else:
-            self.logger.debug("{0} file found".format(file_name))
-            return items[0]['id']
+            
     
     def _handle_file(self, file_type, file_id, contents):
         if file_type is RequestFile.VideoRequest:
@@ -144,13 +152,14 @@ class DriveService(object):
                 files.sort(key=lambda x: os.path.getmtime(self.args.output + "/" + x))
                 
                 for i in range(0, len(files)):
-                    index = str(i + 1)
+                    index = i + 1
+                    index_str = "0" + str(index) if index < 10 else str(index)
                     formatted = files[i].replace('.mp4', '')
                     start_date = datetime.strptime(formatted, '%Y-%m-%d_%H.%M.%S')
-                    end_date = start_date + timedelta(seconds=self.args.length)
+                    end_date = start_date + timedelta(seconds=self.args.length * 2)
                     start = start_date.strftime('%Y-%m-%d %H:%M:%S')
                     end = end_date.strftime('%Y-%m-%d %H:%M:%S')
-                    lines.append('[{index}] [{start_date} -> {end_date}]\n'.format(index=index, start_date=start, end_date=end))
+                    lines.append('[{0}] [{1} -> {2}]\n'.format(index_str, start, end))
                     
                 with open('videos.txt', 'wb') as outfile:
                     outfile.writelines(lines)
