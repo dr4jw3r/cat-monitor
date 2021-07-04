@@ -50,6 +50,7 @@ class DriveMonitor(Thread):
         while self.keep_running:            
             if self.counter > self.args.polling_interval:
                 # check if there is a list file   
+                self.service.check_list_files_request()
                 self.service.check_video_request()
                 self.counter = 0            
             elif self.counter * 2 == rounded_interval:
